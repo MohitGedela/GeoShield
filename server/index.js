@@ -23,12 +23,10 @@ app.use(express.json());
 let data = {
   safeZones: [...sampleData.safeZones],
   requests: [...sampleData.requests],
-  volunteers: [...sampleData.volunteers],
-  survivors: [],
-  coordinators: [],
+  users: [], // Unified users (role: 'user' or 'staff')
   checkIns: [],
   messages: [],
-  verifications: {} // phone -> { code, expiresAt, userType }
+  verifications: {} // phone -> { code, expiresAt }
 };
 
 // API Routes
@@ -40,25 +38,13 @@ app.get('/api/requests', (req, res) => {
   res.json(data.requests);
 });
 
-app.get('/api/volunteers', (req, res) => {
-  res.json(data.volunteers);
-});
-
-app.get('/api/survivors', (req, res) => {
-  res.json(data.survivors);
-});
-
-app.get('/api/coordinators', (req, res) => {
-  res.json(data.coordinators);
-});
-
 app.get('/api/users', (req, res) => {
-  // Coordinator endpoint to get all users
-  res.json({
-    volunteers: data.volunteers,
-    survivors: data.survivors,
-    coordinators: data.coordinators
+  // Return all users (for staff to view)
+  const usersWithoutPasswords = data.users.map(u => {
+    const { password, ...userWithoutPassword } = u;
+    return userWithoutPassword;
   });
+  res.json(usersWithoutPasswords);
 });
 
 app.post('/api/requests', (req, res) => {
@@ -68,6 +54,17 @@ app.post('/api/requests', (req, res) => {
     status: 'Pending',
     createdAt: new Date().toISOString()
   };
+  
+  // Update field names for consistency
+  if (newRequest.userId) {
+    newRequest.survivorId = newRequest.userId;
+    const user = data.users.find(u => u.id === newRequest.userId);
+    if (user) {
+      newRequest.survivorName = user.name;
+      newRequest.survivorPhone = user.phone;
+    }
+  }
+  
   data.requests.push(newRequest);
   
   // Emit to all connected clients
@@ -94,10 +91,10 @@ app.put('/api/requests/:id', (req, res) => {
 
 // Phone verification endpoints
 app.post('/api/verify/send-code', (req, res) => {
-  const { phone, userType } = req.body;
+  const { phone } = req.body;
   
-  if (!phone || !userType) {
-    return res.status(400).json({ error: 'Phone and userType are required' });
+  if (!phone) {
+    return res.status(400).json({ error: 'Phone is required' });
   }
   
   // Generate 6-digit verification code
@@ -106,8 +103,7 @@ app.post('/api/verify/send-code', (req, res) => {
   
   data.verifications[phone] = {
     code,
-    expiresAt,
-    userType
+    expiresAt
   };
   
   // In production, send SMS here. For demo, we'll return the code
@@ -145,92 +141,87 @@ app.post('/api/verify/verify-code', (req, res) => {
   
   // Verification successful
   delete data.verifications[phone];
-  res.json({ success: true, userType: verification.userType });
+  res.json({ success: true });
 });
 
-// User registration endpoints
-app.post('/api/volunteers', (req, res) => {
-  const { phone, verified } = req.body;
+// Authentication endpoints
+app.post('/api/auth/signup', (req, res) => {
+  const { phone, name, password, role, verified } = req.body;
+  
+  if (!phone || !name || !password || !role) {
+    return res.status(400).json({ error: 'Phone, name, password, and role are required' });
+  }
   
   if (!verified) {
     return res.status(400).json({ error: 'Phone must be verified' });
   }
   
   // Check if phone already exists
-  const existing = data.volunteers.find(v => v.phone === phone);
-  if (existing) {
+  const existingByPhone = data.users.find(u => u.phone === phone);
+  if (existingByPhone) {
     return res.status(400).json({ error: 'Phone number already registered' });
   }
   
-  const newVolunteer = {
-    id: `vol${Date.now()}`,
-    ...req.body,
+  // Check if name already exists
+  const existingByName = data.users.find(u => u.name === name);
+  if (existingByName) {
+    return res.status(400).json({ error: 'Username already taken' });
+  }
+  
+  // Validate role
+  if (role !== 'user' && role !== 'staff') {
+    return res.status(400).json({ error: 'Invalid role. Must be "user" or "staff"' });
+  }
+  
+  const newUser = {
+    id: `user${Date.now()}`,
+    phone,
+    name,
+    password, // In production, hash this!
+    role,
     activeMissions: [],
     completedMissions: 0,
-    status: 'Available',
-    verified: true,
+    status: role === 'user' ? 'Available' : 'Active',
     createdAt: new Date().toISOString()
   };
-  delete newVolunteer.verified; // Remove from stored data
   
-  data.volunteers.push(newVolunteer);
+  // Add additional fields for users who can volunteer
+  if (role === 'user') {
+    newUser.skills = [];
+    newUser.resources = [];
+    newUser.availability = '8am-8pm';
+    newUser.lat = 43.2557;
+    newUser.lng = -79.8711;
+  }
   
-  io.emit('volunteerRegistered', newVolunteer);
-  res.json(newVolunteer);
+  data.users.push(newUser);
+  
+  // Return user without password
+  const { password: _, ...userResponse } = newUser;
+  io.emit('userRegistered', userResponse);
+  res.json(userResponse);
 });
 
-app.post('/api/survivors', (req, res) => {
-  const { phone, verified } = req.body;
+app.post('/api/auth/login', (req, res) => {
+  const { name, password } = req.body;
   
-  if (!verified) {
-    return res.status(400).json({ error: 'Phone must be verified' });
+  if (!name || !password) {
+    return res.status(400).json({ error: 'Name and password are required' });
   }
   
-  // Check if phone already exists
-  const existing = data.survivors.find(s => s.phone === phone);
-  if (existing) {
-    return res.status(400).json({ error: 'Phone number already registered' });
+  const user = data.users.find(u => u.name === name);
+  
+  if (!user) {
+    return res.status(401).json({ error: 'Invalid credentials' });
   }
   
-  const newSurvivor = {
-    id: `surv${Date.now()}`,
-    ...req.body,
-    verified: true,
-    createdAt: new Date().toISOString()
-  };
-  delete newSurvivor.verified;
-  
-  data.survivors.push(newSurvivor);
-  
-  io.emit('survivorRegistered', newSurvivor);
-  res.json(newSurvivor);
-});
-
-app.post('/api/coordinators', (req, res) => {
-  const { phone, verified } = req.body;
-  
-  if (!verified) {
-    return res.status(400).json({ error: 'Phone must be verified' });
+  if (user.password !== password) {
+    return res.status(401).json({ error: 'Invalid credentials' });
   }
   
-  // Check if phone already exists
-  const existing = data.coordinators.find(c => c.phone === phone);
-  if (existing) {
-    return res.status(400).json({ error: 'Phone number already registered' });
-  }
-  
-  const newCoordinator = {
-    id: `coord${Date.now()}`,
-    ...req.body,
-    verified: true,
-    createdAt: new Date().toISOString()
-  };
-  delete newCoordinator.verified;
-  
-  data.coordinators.push(newCoordinator);
-  
-  io.emit('coordinatorRegistered', newCoordinator);
-  res.json(newCoordinator);
+  // Return user without password
+  const { password: _, ...userResponse } = user;
+  res.json(userResponse);
 });
 
 app.post('/api/check-in', (req, res) => {
@@ -261,13 +252,12 @@ app.put('/api/safe-zones/:id', (req, res) => {
 
 // Messaging endpoints
 app.post('/api/messages', (req, res) => {
-  const { fromCoordinatorId, toUserId, toUserType, message, requestId } = req.body;
+  const { fromStaffId, toUserId, message, requestId } = req.body;
   
   const newMessage = {
     id: `msg${Date.now()}`,
-    fromCoordinatorId,
+    fromStaffId,
     toUserId,
-    toUserType, // 'volunteer' or 'survivor'
     message,
     requestId: requestId || null,
     createdAt: new Date().toISOString(),
@@ -280,6 +270,46 @@ app.post('/api/messages', (req, res) => {
   io.emit('newMessage', newMessage);
   
   res.json(newMessage);
+});
+
+// Send alert to one or all users
+app.post('/api/alerts/send', (req, res) => {
+  const { fromStaffId, toUserId, message } = req.body;
+  
+  // If toUserId is null or 'all', send to all users
+  if (!toUserId || toUserId === 'all') {
+    const allUsers = data.users.filter(u => u.role === 'user');
+    const alerts = allUsers.map(user => ({
+      id: `alert${Date.now()}_${user.id}`,
+      fromStaffId,
+      toUserId: user.id,
+      message,
+      createdAt: new Date().toISOString(),
+      read: false
+    }));
+    
+    alerts.forEach(alert => {
+      data.messages.push(alert);
+      io.emit('newMessage', alert);
+    });
+    
+    res.json({ success: true, alerts });
+  } else {
+    // Send to specific user
+    const alert = {
+      id: `alert${Date.now()}_${toUserId}`,
+      fromStaffId,
+      toUserId,
+      message,
+      createdAt: new Date().toISOString(),
+      read: false
+    };
+    
+    data.messages.push(alert);
+    io.emit('newMessage', alert);
+    
+    res.json({ success: true, alert });
+  }
 });
 
 app.get('/api/messages/:userId', (req, res) => {
@@ -344,14 +374,16 @@ io.on('connection', (socket) => {
       request.assignedVolunteerId = volunteerId;
       request.assignedVolunteerName = volunteerName;
       
-      const volunteer = data.volunteers.find(v => v.id === volunteerId);
+      const volunteer = data.users.find(v => v.id === volunteerId && v.role === 'user');
       if (volunteer) {
         volunteer.activeMissions.push(requestId);
         volunteer.status = 'Active';
       }
       
       io.emit('requestUpdated', request);
-      io.emit('volunteerUpdated', volunteer);
+      if (volunteer) {
+        io.emit('userUpdated', volunteer);
+      }
     }
   });
   
@@ -362,7 +394,7 @@ io.on('connection', (socket) => {
       request.status = 'Fulfilled';
       request.completedAt = new Date().toISOString();
       
-      const volunteer = data.volunteers.find(v => v.id === volunteerId);
+      const volunteer = data.users.find(v => v.id === volunteerId && v.role === 'user');
       if (volunteer) {
         volunteer.activeMissions = volunteer.activeMissions.filter(id => id !== requestId);
         volunteer.completedMissions += 1;
@@ -372,17 +404,18 @@ io.on('connection', (socket) => {
       }
       
       io.emit('requestUpdated', request);
-      io.emit('volunteerUpdated', volunteer);
+      if (volunteer) {
+        io.emit('userUpdated', volunteer);
+      }
     }
   });
   
-  // Coordinator sends message
-  socket.on('sendMessage', ({ fromCoordinatorId, toUserId, toUserType, message, requestId }) => {
+  // Staff sends message
+  socket.on('sendMessage', ({ fromStaffId, toUserId, message, requestId }) => {
     const newMessage = {
       id: `msg${Date.now()}`,
-      fromCoordinatorId,
+      fromStaffId,
       toUserId,
-      toUserType,
       message,
       requestId: requestId || null,
       createdAt: new Date().toISOString(),
@@ -391,25 +424,6 @@ io.on('connection', (socket) => {
     
     data.messages.push(newMessage);
     io.emit('newMessage', newMessage);
-  });
-  
-  // Forward alert to volunteers
-  socket.on('forwardAlert', ({ requestId, volunteerIds, message }) => {
-    const request = data.requests.find(r => r.id === requestId);
-    if (!request) return;
-    
-    volunteerIds.forEach(volunteerId => {
-      const alert = {
-        id: `alert${Date.now()}_${volunteerId}`,
-        requestId,
-        volunteerId,
-        message: message || `New urgent request: ${request.type}`,
-        createdAt: new Date().toISOString(),
-        read: false
-      };
-      
-      io.emit('alertForwarded', alert);
-    });
   });
 });
 

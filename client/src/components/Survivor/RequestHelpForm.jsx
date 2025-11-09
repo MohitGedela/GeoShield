@@ -18,9 +18,7 @@ const RequestHelpForm = ({ onClose, mapCenter }) => {
     try {
       await createRequest({
         ...formData,
-        survivorId: currentUser?.id || `surv${Date.now()}`,
-        survivorName: currentUser?.name || 'Anonymous',
-        survivorPhone: currentUser?.phone || 'N/A'
+        userId: currentUser?.id
       });
       onClose();
     } catch (error) {

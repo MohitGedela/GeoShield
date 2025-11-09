@@ -74,15 +74,18 @@ export const AppProvider = ({ children }) => {
 
   const loadData = async () => {
     try {
-      const [zonesRes, requestsRes, volunteersRes] = await Promise.all([
+      const [zonesRes, requestsRes] = await Promise.all([
         axios.get(`${API_URL}/api/safe-zones`),
-        axios.get(`${API_URL}/api/requests`),
-        axios.get(`${API_URL}/api/volunteers`)
+        axios.get(`${API_URL}/api/requests`)
       ]);
       
       setSafeZones(zonesRes.data);
       setRequests(requestsRes.data);
-      setVolunteers(volunteersRes.data);
+      
+      // Get volunteers (users with role 'user')
+      const usersRes = await axios.get(`${API_URL}/api/users`);
+      const volunteers = usersRes.data.filter(u => u.role === 'user');
+      setVolunteers(volunteers);
     } catch (error) {
       console.error('Error loading data:', error);
     }
@@ -95,7 +98,11 @@ export const AppProvider = ({ children }) => {
 
   const createRequest = async (requestData) => {
     try {
-      const response = await axios.post(`${API_URL}/api/requests`, requestData);
+      const requestWithUserId = {
+        ...requestData,
+        userId: currentUser?.id
+      };
+      const response = await axios.post(`${API_URL}/api/requests`, requestWithUserId);
       setRequests(prev => [...prev, response.data]);
       showToast('Help request submitted successfully', 'success');
       return response.data;
@@ -146,9 +153,9 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const sendVerificationCode = async (phone, userType) => {
+  const sendVerificationCode = async (phone) => {
     try {
-      const response = await axios.post(`${API_URL}/api/verify/send-code`, { phone, userType });
+      const response = await axios.post(`${API_URL}/api/verify/send-code`, { phone });
       return response.data;
     } catch (error) {
       console.error('Error sending verification code:', error);
@@ -168,27 +175,27 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const registerSurvivor = async (survivorData) => {
+  const login = async (name, password) => {
     try {
-      const response = await axios.post(`${API_URL}/api/survivors`, { ...survivorData, verified: true });
+      const response = await axios.post(`${API_URL}/api/auth/login`, { name, password });
       setCurrentUser(response.data);
-      showToast('Registration successful!', 'success');
+      showToast('Login successful!', 'success');
       return response.data;
     } catch (error) {
-      console.error('Error registering survivor:', error);
-      showToast(error.response?.data?.error || 'Registration failed', 'error');
+      console.error('Error logging in:', error);
+      showToast(error.response?.data?.error || 'Login failed', 'error');
       throw error;
     }
   };
 
-  const registerCoordinator = async (coordinatorData) => {
+  const signup = async (userData) => {
     try {
-      const response = await axios.post(`${API_URL}/api/coordinators`, { ...coordinatorData, verified: true });
+      const response = await axios.post(`${API_URL}/api/auth/signup`, userData);
       setCurrentUser(response.data);
       showToast('Registration successful!', 'success');
       return response.data;
     } catch (error) {
-      console.error('Error registering coordinator:', error);
+      console.error('Error signing up:', error);
       showToast(error.response?.data?.error || 'Registration failed', 'error');
       throw error;
     }
@@ -218,16 +225,17 @@ export const AppProvider = ({ children }) => {
     }
   };
 
-  const forwardAlert = async (requestId, volunteerIds, message) => {
+  const sendAlert = async (fromStaffId, toUserId, message) => {
     try {
+      const response = await axios.post(`${API_URL}/api/alerts/send`, { fromStaffId, toUserId, message });
       if (socket) {
-        socket.emit('forwardAlert', { requestId, volunteerIds, message });
-        const response = await axios.post(`${API_URL}/api/alerts/forward`, { requestId, volunteerIds, message });
-        return response.data;
+        socket.emit('sendMessage', { fromStaffId, toUserId, message });
       }
+      showToast('Alert sent successfully!', 'success');
+      return response.data;
     } catch (error) {
-      console.error('Error forwarding alert:', error);
-      showToast('Failed to forward alert', 'error');
+      console.error('Error sending alert:', error);
+      showToast('Failed to send alert', 'error');
       throw error;
     }
   };
@@ -246,15 +254,15 @@ export const AppProvider = ({ children }) => {
     acceptRequest,
     completeRequest,
     registerVolunteer,
-    registerSurvivor,
-    registerCoordinator,
     checkIn,
     loadData,
     sendVerificationCode,
     verifyCode,
     getAllUsers,
     sendMessage,
-    forwardAlert
+    sendAlert,
+    login,
+    signup
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
