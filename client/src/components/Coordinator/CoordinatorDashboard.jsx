@@ -4,14 +4,26 @@ import MapComponent from '../Map/MapComponent';
 import StatsOverview from './StatsOverview';
 import ResourceManagement from './ResourceManagement';
 import AlertSystem from './AlertSystem';
+import CoordinatorRegistration from './CoordinatorRegistration';
 import { ArrowLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
 const CoordinatorDashboard = () => {
   const navigate = useNavigate();
-  const { requests, safeZones, volunteers } = useApp();
+  const { requests, safeZones, volunteers, currentUser, setCurrentUser } = useApp();
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [showResources, setShowResources] = useState(false);
+
+  // Show registration if not logged in
+  if (!currentUser) {
+    return (
+      <CoordinatorRegistration
+        onComplete={(coordinator) => {
+          setCurrentUser(coordinator);
+        }}
+      />
+    );
+  }
 
   return (
     <div className="h-screen flex flex-col">

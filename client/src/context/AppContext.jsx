@@ -55,10 +55,22 @@ export const AppProvider = ({ children }) => {
       showToast('New check-in received', 'info');
     });
 
+    newSocket.on('newMessage', (message) => {
+      if (message.toUserId === currentUser?.id) {
+        showToast('New message from coordinator', 'info');
+      }
+    });
+
+    newSocket.on('alertForwarded', (alert) => {
+      if (alert.volunteerId === currentUser?.id) {
+        showToast('New alert forwarded to you', 'info');
+      }
+    });
+
     return () => {
       newSocket.close();
     };
-  }, [userMode]);
+  }, [userMode, currentUser]);
 
   const loadData = async () => {
     try {
@@ -134,6 +146,92 @@ export const AppProvider = ({ children }) => {
     }
   };
 
+  const sendVerificationCode = async (phone, userType) => {
+    try {
+      const response = await axios.post(`${API_URL}/api/verify/send-code`, { phone, userType });
+      return response.data;
+    } catch (error) {
+      console.error('Error sending verification code:', error);
+      showToast('Failed to send verification code', 'error');
+      throw error;
+    }
+  };
+
+  const verifyCode = async (phone, code) => {
+    try {
+      const response = await axios.post(`${API_URL}/api/verify/verify-code`, { phone, code });
+      return response.data;
+    } catch (error) {
+      console.error('Error verifying code:', error);
+      showToast(error.response?.data?.error || 'Invalid verification code', 'error');
+      throw error;
+    }
+  };
+
+  const registerSurvivor = async (survivorData) => {
+    try {
+      const response = await axios.post(`${API_URL}/api/survivors`, { ...survivorData, verified: true });
+      setCurrentUser(response.data);
+      showToast('Registration successful!', 'success');
+      return response.data;
+    } catch (error) {
+      console.error('Error registering survivor:', error);
+      showToast(error.response?.data?.error || 'Registration failed', 'error');
+      throw error;
+    }
+  };
+
+  const registerCoordinator = async (coordinatorData) => {
+    try {
+      const response = await axios.post(`${API_URL}/api/coordinators`, { ...coordinatorData, verified: true });
+      setCurrentUser(response.data);
+      showToast('Registration successful!', 'success');
+      return response.data;
+    } catch (error) {
+      console.error('Error registering coordinator:', error);
+      showToast(error.response?.data?.error || 'Registration failed', 'error');
+      throw error;
+    }
+  };
+
+  const getAllUsers = async () => {
+    try {
+      const response = await axios.get(`${API_URL}/api/users`);
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      throw error;
+    }
+  };
+
+  const sendMessage = async (messageData) => {
+    try {
+      if (socket) {
+        socket.emit('sendMessage', messageData);
+        const response = await axios.post(`${API_URL}/api/messages`, messageData);
+        return response.data;
+      }
+    } catch (error) {
+      console.error('Error sending message:', error);
+      showToast('Failed to send message', 'error');
+      throw error;
+    }
+  };
+
+  const forwardAlert = async (requestId, volunteerIds, message) => {
+    try {
+      if (socket) {
+        socket.emit('forwardAlert', { requestId, volunteerIds, message });
+        const response = await axios.post(`${API_URL}/api/alerts/forward`, { requestId, volunteerIds, message });
+        return response.data;
+      }
+    } catch (error) {
+      console.error('Error forwarding alert:', error);
+      showToast('Failed to forward alert', 'error');
+      throw error;
+    }
+  };
+
   const value = {
     userMode,
     setUserMode,
@@ -148,8 +246,15 @@ export const AppProvider = ({ children }) => {
     acceptRequest,
     completeRequest,
     registerVolunteer,
+    registerSurvivor,
+    registerCoordinator,
     checkIn,
-    loadData
+    loadData,
+    sendVerificationCode,
+    verifyCode,
+    getAllUsers,
+    sendMessage,
+    forwardAlert
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;

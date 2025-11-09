@@ -5,6 +5,7 @@ import RequestHelpForm from './RequestHelpForm';
 import CheckInButton from './CheckInButton';
 import MyRequestsList from './MyRequestsList';
 import SafeZonesList from './SafeZonesList';
+import SurvivorRegistration from './SurvivorRegistration';
 import { ArrowLeft } from 'lucide-react';
 import { useApp } from '../../context/AppContext';
 
@@ -15,9 +16,20 @@ const SurvivorDashboard = () => {
   const [selectedMarker, setSelectedMarker] = useState(null);
   const [mapCenter, setMapCenter] = useState({ lat: 43.2557, lng: -79.8711 });
 
+  // Show registration if not logged in
+  if (!currentUser) {
+    return (
+      <SurvivorRegistration
+        onComplete={(survivor) => {
+          setCurrentUser(survivor);
+        }}
+      />
+    );
+  }
+
   // Get user's requests
   const myRequests = requests.filter(r => 
-    r.survivorId === (currentUser?.id || 'surv1')
+    r.survivorId === currentUser.id
   );
 
   const handleMapClick = (e) => {
