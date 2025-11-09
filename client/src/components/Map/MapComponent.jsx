@@ -22,6 +22,8 @@ const MapComponent = ({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY || '',
     libraries
   });
+  
+  // Note: Google Maps API key is optional - map will still work but may have limitations
 
   const getMarkerColor = (urgency, status) => {
     if (status === 'Fulfilled') return '🟢';

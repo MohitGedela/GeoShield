@@ -49,18 +49,45 @@ A real-time web application that coordinates emergency disaster response by conn
    npm install
    ```
 
-4. Create `.env` file in root directory:
+4. Create environment files:
+   
+   **Client (.env file in `client/` directory):**
    ```bash
-   cp .env.example .env
+   cd client
+   # Create .env file with:
+   VITE_API_URL=http://localhost:3001
+   VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+   VITE_PORT=5173
    ```
-
-5. Add your Google Maps API key to `.env`:
+   
+   **Server (.env file in `server/` directory):**
+   ```bash
+   cd server
+   # Create .env file with:
+   PORT=3001
+   CLIENT_URL=http://localhost:5173
    ```
-   VITE_GOOGLE_MAPS_API_KEY=your_key_here
-   ```
+   
+   See `client/.env.example` and `server/.env.example` for reference.
 
 ### Running the Application
 
+**Quick Start (Recommended):**
+
+Option 1 - PowerShell Script (Windows):
+```powershell
+.\start-app.ps1
+```
+
+Option 2 - NPM Script (Cross-platform):
+```bash
+npm install  # First time only - installs concurrently
+npm start
+```
+
+Both methods start backend and frontend servers automatically.
+
+**Manual Start:**
 1. Start the backend server:
    ```bash
    cd server
@@ -121,6 +148,10 @@ The application comes preloaded with:
 - Real-time updates via Socket.io WebSocket connections
 - Mobile-responsive design
 - Color-coded markers for easy visualization
+
+## Deployment
+
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions to Netlify and Railway/Render.
 
 ## License
 

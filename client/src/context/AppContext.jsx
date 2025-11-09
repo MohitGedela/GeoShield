@@ -4,7 +4,10 @@ import axios from 'axios';
 
 const AppContext = createContext();
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL;
+if (!API_URL) {
+  throw new Error('VITE_API_URL environment variable is required. Please set it in your .env file.');
+}
 
 export const useApp = () => {
   const context = useContext(AppContext);
@@ -33,8 +36,13 @@ export const AppProvider = ({ children }) => {
 
     // Socket event listeners
     newSocket.on('newRequest', (request) => {
-      setRequests(prev => [...prev, request]);
-      if (userMode === 'volunteer') {
+      setRequests(prev => {
+        // Check if request already exists to avoid duplicates
+        const exists = prev.find(r => r.id === request.id);
+        if (exists) return prev;
+        return [...prev, request];
+      });
+      if (userMode === 'volunteer' || currentUser?.role === 'user') {
         showToast('New request for help!', 'info');
       }
     });
@@ -103,7 +111,7 @@ export const AppProvider = ({ children }) => {
         userId: currentUser?.id
       };
       const response = await axios.post(`${API_URL}/api/requests`, requestWithUserId);
-      setRequests(prev => [...prev, response.data]);
+      // Don't add to state here - let Socket.io handle it to avoid duplicates
       showToast('Help request submitted successfully', 'success');
       return response.data;
     } catch (error) {

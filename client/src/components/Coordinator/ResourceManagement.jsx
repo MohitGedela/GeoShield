@@ -3,6 +3,11 @@ import { Edit, Save, X } from 'lucide-react';
 import axios from 'axios';
 import { useApp } from '../../context/AppContext';
 
+const API_URL = import.meta.env.VITE_API_URL;
+if (!API_URL) {
+  throw new Error('VITE_API_URL environment variable is required. Please set it in your .env file.');
+}
+
 const ResourceManagement = ({ safeZones }) => {
   const { loadData } = useApp();
   const [editingZone, setEditingZone] = useState(null);
@@ -19,7 +24,6 @@ const ResourceManagement = ({ safeZones }) => {
 
   const handleSave = async (zoneId) => {
     try {
-      const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
       await axios.put(`${API_URL}/api/safe-zones/${zoneId}`, editData);
       setEditingZone(null);
       loadData();

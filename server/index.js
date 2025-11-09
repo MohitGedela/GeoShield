@@ -9,6 +9,10 @@ dotenv.config();
 
 const app = express();
 const httpServer = createServer(app);
+if (!process.env.CLIENT_URL) {
+  console.warn('WARNING: CLIENT_URL environment variable not set. Using default http://localhost:5173');
+}
+
 const io = new Server(httpServer, {
   cors: {
     origin: process.env.CLIENT_URL || 'http://localhost:5173',
@@ -428,6 +432,10 @@ io.on('connection', (socket) => {
 });
 
 const PORT = process.env.PORT || 3001;
+if (!process.env.PORT) {
+  console.warn('WARNING: PORT environment variable not set. Using default port 3001');
+}
+
 httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
