@@ -55,8 +55,8 @@ A real-time web application that coordinates emergency disaster response by conn
    ```bash
    cd client
    # Create .env file with:
+   VITE_GOOGLE_MAPS_API_KEY=AIzaSyAhHWeOvNSPwDlVzqd4Sc79wZhhdLMwjgU
    VITE_API_URL=http://localhost:3001
-   VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
    VITE_PORT=5173
    ```
    
