@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import MapComponent from '../Map/MapComponent';
 import RequestHelpForm from '../Survivor/RequestHelpForm';
-import CheckInButton from '../Survivor/CheckInButton';
 import MyRequestsList from '../Survivor/MyRequestsList';
 import SafeZonesList from '../Survivor/SafeZonesList';
 import { ArrowLeft, Heart } from 'lucide-react';
@@ -49,7 +48,6 @@ const UserDashboard = () => {
           <h1 className="text-2xl font-bold">User Dashboard</h1>
         </div>
         <div className="flex items-center gap-4">
-          <CheckInButton />
           <button
             onClick={() => navigate('/missions')}
             className="flex items-center gap-2 px-4 py-2 bg-blue-700 rounded-lg hover:bg-blue-800"

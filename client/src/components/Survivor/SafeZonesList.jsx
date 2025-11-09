@@ -1,5 +1,5 @@
 import React from 'react';
-import { MapPin, Users } from 'lucide-react';
+import { MapPin, Users, Navigation } from 'lucide-react';
 
 const SafeZonesList = ({ safeZones }) => {
   const getTypeColor = (type) => {
@@ -13,6 +13,11 @@ const SafeZonesList = ({ safeZones }) => {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const openNavigation = (zone) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${zone.lat},${zone.lng}`;
+    window.open(url, '_blank');
   };
 
   return (
@@ -35,7 +40,7 @@ const SafeZonesList = ({ safeZones }) => {
                 <MapPin className="w-3 h-3" />
                 {zone.address}
               </p>
-              <div className="flex items-center gap-4 text-xs text-gray-500">
+              <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
                 <span className="flex items-center gap-1">
                   <Users className="w-3 h-3" />
                   {zone.occupancy}/{zone.capacity}
@@ -44,6 +49,13 @@ const SafeZonesList = ({ safeZones }) => {
                   {Math.round((zone.occupancy / zone.capacity) * 100)}% full
                 </span>
               </div>
+              <button
+                onClick={() => openNavigation(zone)}
+                className="w-full bg-purple-600 text-white py-2 rounded-lg text-xs font-semibold hover:bg-purple-700 transition flex items-center justify-center gap-2"
+              >
+                <Navigation className="w-3 h-3" />
+                Get Directions
+              </button>
             </div>
           ))}
         </div>

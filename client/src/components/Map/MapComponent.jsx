@@ -1,6 +1,6 @@
 import React, { useMemo, useCallback } from 'react';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
-import { AlertCircle, Heart, MapPin, Home } from 'lucide-react';
+import { AlertCircle, Heart, MapPin, Home, Navigation } from 'lucide-react';
 
 const libraries = ['places'];
 
@@ -47,6 +47,11 @@ const MapComponent = ({
   const onLoad = useCallback((map) => {
     // Map loaded
   }, []);
+
+  const openNavigation = (lat, lng) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+    window.open(url, '_blank');
+  };
 
   if (!isLoaded) {
     return (
@@ -116,7 +121,14 @@ const MapComponent = ({
               <div className="p-2">
                 <h3 className="font-bold text-sm mb-1">{zone.name}</h3>
                 <p className="text-xs text-gray-600">{zone.type}</p>
-                <p className="text-xs">Capacity: {zone.occupancy}/{zone.capacity}</p>
+                <p className="text-xs mb-2">Capacity: {zone.occupancy}/{zone.capacity}</p>
+                <button
+                  onClick={() => openNavigation(zone.lat, zone.lng)}
+                  className="w-full bg-purple-600 text-white py-1.5 px-3 rounded text-xs font-semibold hover:bg-purple-700 transition flex items-center justify-center gap-1"
+                >
+                  <Navigation className="w-3 h-3" />
+                  Get Directions
+                </button>
               </div>
             </InfoWindow>
           )}
