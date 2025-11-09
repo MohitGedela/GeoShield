@@ -91,7 +91,6 @@ Both methods start backend and frontend servers automatically.
 
 The application comes preloaded with:
 - 8 safe zones in Hamilton, Ontario
-- 20 sample requests across different urgency levels
 - 12 active volunteers with various skills
 - Realistic addresses and locations
 
