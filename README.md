@@ -79,60 +79,13 @@ Option 1 - PowerShell Script (Windows):
 .\start-app.ps1
 ```
 
-Option 2 - NPM Script (Cross-platform):
-```bash
-npm install  # First time only - installs concurrently
-npm start
-```
 
 Both methods start backend and frontend servers automatically.
 
-**Manual Start:**
-1. Start the backend server:
-   ```bash
-   cd server
-   npm start
-   ```
-   Server runs on http://localhost:3001
-
-2. Start the frontend (in a new terminal):
-   ```bash
-   cd client
-   npm run dev
-   ```
-   App runs on http://localhost:5173
 
 3. Open http://localhost:5173 in your browser
 
-## Usage
 
-1. **Landing Page**: Choose your role (Survivor, Volunteer, or Coordinator)
-2. **Survivor**: Submit help requests, check in as safe, view nearby safe zones
-3. **Volunteer**: Register, view requests on map, accept missions, mark complete
-4. **Coordinator**: Monitor all activity, manage resources, view statistics
-
-## Project Structure
-
-```
-GeoShield/
-├── client/          # React frontend
-│   ├── src/
-│   │   ├── components/
-│   │   │   ├── Map/
-│   │   │   ├── Survivor/
-│   │   │   ├── Volunteer/
-│   │   │   ├── Coordinator/
-│   │   │   └── Shared/
-│   │   ├── context/
-│   │   └── App.jsx
-│   └── package.json
-├── server/          # Node.js backend
-│   ├── index.js
-│   ├── data.js
-│   └── package.json
-├── .env.example
-└── README.md
-```
 
 ## Sample Data
 
@@ -149,11 +102,6 @@ The application comes preloaded with:
 - Mobile-responsive design
 - Color-coded markers for easy visualization
 
-## Deployment
+##
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed deployment instructions to Netlify and Railway/Render.
-
-## License
-
-MIT
-
+Done By: Kabir, Mohit, Lohit, Manasvi
