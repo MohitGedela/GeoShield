@@ -67,31 +67,23 @@ A real-time web application that coordinates emergency disaster response by conn
    PORT=3001
    CLIENT_URL=http://localhost:5173
    ```
-   
-   See `client/.env.example` and `server/.env.example` for reference.
 
-### Running the Application
-
-**Quick Start (Recommended):**
-
-Option 1 - PowerShell Script (Windows):
-```powershell
-.\start-app.ps1
-```
+5. Finally running the program:
+   After running all the commands, run the following code
+   ```bash
+   .\start-app.ps1 (If you are currently in main)
+   ..\start-app.ps1 (If you are currently in main/client/) 
+   ```
+   This runs a powershell file that runs everything required to run the application
 
 
-Both methods start backend and frontend servers automatically.
-
-
-3. Open http://localhost:5173 in your browser
-
+7. Open http://localhost:5173 in your browser
 
 
 ## Sample Data
 
 The application comes preloaded with:
 - 8 safe zones in Hamilton, Ontario
-- 12 active volunteers with various skills
 - Realistic addresses and locations
 
 ## Development Notes
